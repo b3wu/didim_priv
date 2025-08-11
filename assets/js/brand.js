@@ -1,0 +1,1 @@
+window.BRAND={"name": "DIDIM", "phone": "+48 692 604 018", "email": "kontakt@didim.pl", "address": "Ul. ..., Miasto", "hero": "./assets/img/brand/hero.jpg", "logo": "./assets/img/brand/logo.png"}

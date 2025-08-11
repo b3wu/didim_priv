@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zamówienie — DIDIM</title>
+  <link rel="icon" href="./assets/img/brand/logo.png" type="image/png" />
+  <link rel="stylesheet" href="./assets/css/styles.css" />
+  <script defer src="./assets/js/brand.js"></script>
+  <script defer src="./assets/js/script.js?v=4"></script>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#fafafa;color:#111}
+    .container{max-width:1000px;margin:0 auto;padding:16px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .brand img{height:32px;vertical-align:middle;margin-right:8px}
+    nav.links{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px}
+    .section{padding:24px 0}
+    .grid{display:grid;gap:24px}
+    .grid-2{grid-template-columns:1fr}
+    @media(min-width:900px){ .grid-2{grid-template-columns:1fr 1fr} }
+    label{display:block;margin:10px 0}
+    input, select, textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff}
+    .table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden}
+    .table th,.table td{padding:10px;border-bottom:1px solid #eee;text-align:left}
+    .table th{background:#f5f5f7}
+    .cta{padding:12px 16px;border-radius:12px;border:1px solid #111;background:#111;color:#fff;cursor:pointer}
+    .cta:hover{opacity:.9}
+    .footer{padding:32px 0;color:#666}
+    .kicker{color:#666}
+    .totals > div{margin:6px 0}
+    .remove{cursor:pointer;border:0;background:transparent;color:#d00}
+    .cart-btn{border:1px solid #ddd;background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}
+    .cart-count{background:#111;color:#fff;border-radius:10px;padding:2px 8px;margin-left:6px}
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="container">
+    <div class="topbar">
+      <a class="brand" href="./index.html">
+        <img id="brand-logo" src="./assets/img/brand/logo.png" alt="Logo"> <strong>DIDIM</strong>
+      </a>
+      <button class="cart-btn" onclick="location.href='./order.html'">
+        Koszyk <span class="cart-count">0</span>
+      </button>
+    </div>
+    <nav class="links">
+      <a href="./index.html">Start</a>
+      <a href="./menu.html">Menu</a>
+      <a href="./order.html" aria-current="page">Zamówienie</a>
+      <a href="./contact.html">Kontakt</a>
+      <a href="./regulamin.html">Regulamin</a>
+      <a href="./privacy.html">Prywatność</a>
+    </nav>
+  </div>
+</header>
+
+<section class="section">
+  <div class="container">
+    <h1>Twoje zamówienie</h1>
+    <div class="grid grid-2">
+      <div>
+        <h3>Dane klienta</h3>
+        <label>Imię i nazwisko
+          <input id="name" placeholder="Jan Kowalski">
+        </label>
+        <label>Telefon
+          <input id="phone" placeholder="+48 600 000 000">
+        </label>
+        <label><input type="checkbox" id="pickup"> Odbiór osobisty</label>
+        <div id="addr">
+          <label>Ulica i nr
+            <input id="street" placeholder="Przykładowa 10/2">
+          </label>
+          <label>Kod pocztowy
+            <input id="zip" placeholder="00-000">
+          </label>
+          <label>Miasto
+            <input id="city" placeholder="Warszawa">
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <h3>Podsumowanie</h3>
+        <table class="table">
+          <thead>
+            <tr><th>Produkt</th><th>Cena</th><th>Ilość</th><th>Suma</th><th></th></tr>
+          </thead>
+          <tbody id="order-items"></tbody>
+        </table>
+
+        <div style="margin-top:10px">
+          <label>Sposób realizacji
+            <select id="deliveryMethod">
+              <option value="pickup">Odbiór osobisty</option>
+              <option value="delivery">Dostawa (+6 PLN)</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="totals">
+          <div>Razem: <strong id="sum-subtotal">0,00 PLN</strong></div>
+          <div>Dostawa: <strong id="sum-delivery">0,00 PLN</strong></div>
+          <div>Do zapłaty: <strong id="sum-total">0,00 PLN</strong></div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <button id="payNow" class="cta">Zamów i zapłać</button>
+          <button id="clearCart" class="cta" style="background:#000;color:#fff;border:1px solid var(--line)">
+            Wyczyść koszyk
+          </button>
+        </div>
+        <p class="kicker">Zamówienia wyłącznie z płatnością online (Stripe).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="kicker">© 2025 DIDIM • <a href="./privacy.html">Prywatność</a> • <a href="./regulamin.html">Regulamin</a></div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  const byId = id => document.getElementById(id);
+  const $items = byId('order-items');
+  const $count = document.querySelector('.cart-count');
+  const DELIVERY_FEE = 600; // grosze = 6,00 PLN
+
+  let cart = [];
+  function loadCart(){
+    try { cart = JSON.parse(localStorage.getItem('cart') || '[]'); }
+    catch(e){ cart = []; }
+    $count.textContent = cart.reduce((s,i)=>s+Number(i.qty||0),0);
+  }
+  function formatPLN(grosze){
+    return (grosze/100).toFixed(2).replace('.', ',') + ' PLN';
+  }
+  function rowSum(item){ return Math.round(Number(item.price)*100) * Number(item.qty); }
+  function render(){
+    $items.innerHTML = '';
+    cart.forEach((it,idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${it.name}</td>
+        <td>${formatPLN(Math.round(Number(it.price)*100))}</td>
+        <td>
+          <input type="number" min="1" value="${it.qty}" style="width:64px"
+                 data-idx="${idx}" class="qty-input" />
+        </td>
+        <td>${formatPLN(rowSum(it))}</td>
+        <td><button class="remove" data-idx="${idx}">Usuń</button></td>
+      `;
+      $items.appendChild(tr);
+    });
+    recalc();
+  }
+  function subtotal(){
+    return cart.reduce((s,it)=>s + rowSum(it), 0);
+  }
+  function recalc(){
+    const sub = subtotal();
+    const delivery = byId('deliveryMethod').value === 'delivery' ? DELIVERY_FEE : 0;
+    byId('sum-subtotal').textContent = formatPLN(sub);
+    byId('sum-delivery').textContent = formatPLN(delivery);
+    byId('sum-total').textContent = formatPLN(sub + delivery);
+  }
+
+  // events
+  document.addEventListener('change', (e)=>{
+    if (e.target.classList.contains('qty-input')){
+      const idx = Number(e.target.dataset.idx);
+      const v = Math.max(1, Number(e.target.value||1));
+      cart[idx].qty = v;
+      localStorage.setItem('cart', JSON.stringify(cart));
+      render();
+      $count.textContent = cart.reduce((s,i)=>s+Number(i.qty||0),0);
+    }
+    if (e.target.id === 'deliveryMethod') recalc();
+    if (e.target.id === 'pickup'){
+      byId('addr').style.display = e.target.checked ? 'none' : 'block';
+      byId('deliveryMethod').value = e.target.checked ? 'pickup' : byId('deliveryMethod').value;
+      recalc();
+    }
+  });
+  document.addEventListener('click', (e)=>{
+    if (e.target.classList.contains('remove')){
+      const idx = Number(e.target.dataset.idx);
+      cart.splice(idx,1);
+      localStorage.setItem('cart', JSON.stringify(cart));
+      render();
+      $count.textContent = cart.reduce((s,i)=>s+Number(i.qty||0),0);
+    }
+  });
+
+  byId('clearCart').addEventListener('click', ()=>{
+    if (confirm('Wyczyścić koszyk?')){
+      cart = [];
+      localStorage.setItem('cart', JSON.stringify(cart));
+      render();
+      $count.textContent = '0';
+    }
+  });
+
+  byId('payNow').addEventListener('click', async ()=>{
+    const name = byId('name').value.trim();
+    const phone = byId('phone').value.trim();
+    if (!name || !phone){
+      alert('Uzupełnij imię i telefon.');
+      return;
+    }
+    if (cart.length === 0){
+      alert('Koszyk jest pusty.');
+      return;
+    }
+    const total = subtotal() + (byId('deliveryMethod').value === 'delivery' ? DELIVERY_FEE : 0); // grosze
+
+    try{
+      const body = new URLSearchParams({ amount: String(total) });
+      const res = await fetch('/api/stripe/create_checkout.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body
+      });
+      const data = await res.json();
+      if (data.url){
+        window.location.href = data.url; // Stripe Checkout
+      }else{
+        alert('Błąd płatności. Spróbuj ponownie.');
+        console.error(data);
+      }
+    }catch(err){
+      alert('Nie udało się zainicjować płatności.');
+      console.error(err);
+    }
+  });
+
+  // init
+  loadCart();
+  render();
+  const cb = document.getElementById('pickup'), addr = document.getElementById('addr');
+  const toggle = ()=>{ addr.style.display = cb.checked ? 'none' : 'block'; };
+  cb.onchange = toggle; toggle();
+})();
+</script>
+
+</body>
+</html>

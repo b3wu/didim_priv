@@ -1,0 +1,1 @@
+{"name":"didim-bw-site-v11-lite","private":true,"version":"1.0.0","dependencies":{"stripe":"^14.0.0","@supabase/supabase-js":"^2.45.0"}}
